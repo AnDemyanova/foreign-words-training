@@ -9,7 +9,6 @@ const words = [
 
 let currentIndex = 0;
 
-
 const cardFront = document.getElementById('card-front');
 const cardBack = document.getElementById('card-back');
 const currentWordDisplay = document.getElementById('current-word');
@@ -20,10 +19,10 @@ const shuffleButton = document.getElementById('shuffle-words');
 const flipCard = document.querySelector('.flip-card');
 const examButton = document.getElementById('exam');
 const examCardsContainer = document.getElementById('exam-cards');
-
+const studyMode = document.getElementById('study-mode');
+const examMode = document.getElementById('exam-mode');
 
 totalWordDisplay.textContent = words.length;
-
 
 function displayCard() {
     const word = words[currentIndex];
@@ -32,16 +31,13 @@ function displayCard() {
     cardBack.querySelector('span').textContent = word.example;
     currentWordDisplay.textContent = currentIndex + 1;
 
-
     backButton.disabled = currentIndex === 0;
     nextButton.disabled = currentIndex === words.length - 1;
 }
 
-
 flipCard.addEventListener('click', () => {
     flipCard.classList.toggle('active');
 });
-
 
 shuffleButton.addEventListener('click', () => {
     for (let i = words.length - 1; i > 0; i--) {
@@ -52,7 +48,6 @@ shuffleButton.addEventListener('click', () => {
     displayCard();
 });
 
-
 nextButton.addEventListener('click', () => {
     if (currentIndex < words.length - 1) {
         currentIndex++;
@@ -60,7 +55,6 @@ nextButton.addEventListener('click', () => {
         displayCard();
     }
 });
-
 
 backButton.addEventListener('click', () => {
     if (currentIndex > 0) {
@@ -70,31 +64,42 @@ backButton.addEventListener('click', () => {
     }
 });
 
-
 displayCard();
-
 
 let isExamMode = false;
 let selectedCards = [];
 
 examButton.addEventListener('click', () => {
-    isExamMode = true;
+    cardFront.style.display = 'none';
+    cardBack.style.display = 'none';
+    currentWordDisplay.style.display = 'none';
+    totalWordDisplay.style.display = 'none';
+
+    nextButton.style.display = 'none';
+    backButton.style.display = 'none';
+    shuffleButton.style.display = 'none';
+    flipCard.style.display = 'none';
+
+    examButton.style.display = 'none';
+
     currentIndex = 0;
-    currentWordDisplay.textContent = '';
-    totalWordDisplay.textContent = '';
-    document.getElementById('study-mode').classList.add('hidden');
-    document.getElementById('exam-mode').classList.remove('hidden');
+    isExamMode = true;
+    examMode.classList.remove('hidden');
     startExam();
 });
 
 function startExam() {
-    let shuffledWords = [...words];
-    shuffledWords = shuffleArray(shuffledWords);
-    examCardsContainer.innerHTML = '';
+    const cardPairs = [];
+    words.forEach(word => {
+        cardPairs.push({ text: word.foreign, type: 'foreign' });
+        cardPairs.push({ text: word.translation, type: 'translation' });
+    });
 
-    shuffledWords.forEach((word) => {
-        createCard(word.foreign, 'foreign');
-        createCard(word.translation, 'translation');
+    const shuffledPairs = shuffleArray(cardPairs);
+    clearExamCards();
+
+    shuffledPairs.forEach(pair => {
+        createCard(pair.text, pair.type);
     });
 
     addCardClickHandlers();
@@ -108,6 +113,12 @@ function createCard(text, type) {
     examCardsContainer.appendChild(card);
 }
 
+function clearExamCards() {
+    while (examCardsContainer.firstChild) {
+        examCardsContainer.removeChild(examCardsContainer.firstChild);
+    }
+}
+
 function addCardClickHandlers() {
     const cards = document.querySelectorAll('#exam-cards .card');
     cards.forEach(card => {
@@ -118,17 +129,13 @@ function addCardClickHandlers() {
 }
 
 function handleCardClick(card) {
-
-    if (selectedCards.length >= 2) return;
-
+    if (selectedCards.length >= 2 || card.classList.contains('fade-out')) return;
 
     selectedCards.push(card);
-
 
     if (selectedCards.length === 1) {
         card.classList.add('correct');
     }
-
 
     if (selectedCards.length === 2) {
         const [firstCard, secondCard] = selectedCards;
@@ -136,28 +143,31 @@ function handleCardClick(card) {
         const firstType = firstCard.dataset.type;
         const secondType = secondCard.dataset.type;
 
-
         const foreignWord = firstType === 'foreign' ? firstCard.textContent : secondCard.textContent;
         const translationWord = firstType === 'translation' ? firstCard.textContent : secondCard.textContent;
-
 
         const matched = words.find(word => word.foreign === foreignWord && word.translation === translationWord);
 
         if (matched) {
-
             firstCard.classList.add('fade-out');
             secondCard.classList.add('fade-out');
-            selectedCards = [];
 
+            firstCard.classList.add('correct');
+            secondCard.classList.add('correct');
 
             setTimeout(() => {
-                if (document.querySelectorAll('.card:not(.fade-out)').length === 0) {
+                firstCard.style.visibility = 'hidden';
+                secondCard.style.visibility = 'hidden';
+                selectedCards = [];
+
+                const remainingCards = document.querySelectorAll('#exam-cards .card:not(.fade-out)');
+                if (remainingCards.length === 0) {
                     alert('Поздравляю! Тестирование завершено.');
+                    examButton.style.display = '';
                     resetExam();
                 }
             }, 500);
         } else {
-
             secondCard.classList.add('wrong');
             setTimeout(() => {
                 secondCard.classList.remove('wrong');
@@ -170,9 +180,19 @@ function handleCardClick(card) {
 function resetExam() {
     isExamMode = false;
     selectedCards = [];
-    document.getElementById('exam-mode').classList.add('hidden');
-    document.getElementById('study-mode').classList.remove('hidden');
-    examCardsContainer.innerHTML = '';
+    examMode.classList.add('hidden');
+
+    cardFront.style.display = '';
+    cardBack.style.display = '';
+    currentWordDisplay.style.display = '';
+    totalWordDisplay.style.display = '';
+
+    nextButton.style.display = '';
+    backButton.style.display = '';
+    shuffleButton.style.display = '';
+    flipCard.style.display = '';
+
+    examButton.style.display = '';
 }
 
 function shuffleArray(array) {
